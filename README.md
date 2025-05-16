@@ -55,7 +55,7 @@ The training batch size was kept to 32.
 
 ### Run the model
 
-To run the model, simply use the attached [Jupyter notebook](DLAV_Phase1_Aurelien-Sara.ipynb). The model is loaded with the following commands.
+To run the model, simply use the attached [Jupyter notebook](DLAV_Phase1_Aurelien.ipynb). The model is loaded with the following commands.
 
 ```python
 model = DrivingPlanner()
