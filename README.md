@@ -75,13 +75,13 @@ It returns the output as a (60,3) array of the predicted future positions and he
 
 Our network first encodes each type of input independantly in a latent space, and then fuses them to make the final prediction.
 
-1. The ``camera`` input is encoded using the pretrained EfficientNet B0 model [^eff_net]. We removed the last classification layers and replaced them with an AdaptiveAvgPool2d and a Linear layer to encode it to a 128-dimensions space.
+1. The ``camera`` input is encoded using the pretrained EfficientNet B0 model [^eff_net]. We removed the last classification layers and replaced them with an AdaptiveAvgPool2d and a Linear layer to encode it to a 256-dimensions space.
 
 2. The ``history`` input is processed using only linear layers:
     * Flatten: 21x3 -> 21\*3
     * Linear(21\*3, 256): 21x3 -> 256
     * ReLU
-    * Linear(256, 64): 256 -> 64
+    * Linear(256, 128): 256 -> 128
     * LeakyReLU
   
 3. The ``depth`` input is encoded using a CNN:
@@ -93,14 +93,14 @@ Our network first encodes each type of input independantly in a latent space, an
    * Conv2d(64, 64, kernel_size=5, stride=2, padding=2): 50x75x64 -> 25x38x64
    * ReLU
    * Flatten: 25x38x64 -> 25\*38\*64
-   * Linear(25\*38\*64, 128): 25\*38\*64 -> 128
+   * Linear(25\*38\*64, 256): 25\*38\*64 -> 256
    * LeakyReLU
   
 4. The fuser decoder network is a simple fully connected network:
-    * Concatenate: 128,64,128 -> 128+64+128
-    * Linear(128+64+128, 256): 128+64+128 -> 256
+    * Concatenate: 256,128,256 -> 256+128+256
+    * Linear(256+128+256, 512): 256+128+256 -> 512
     * ReLU
-    * Linear(256, 256): 256 -> 256
+    * Linear(512, 256): 512 -> 256
     * ReLU
     * Linear(256, 60\*3): 256 -> 60\*3
   
