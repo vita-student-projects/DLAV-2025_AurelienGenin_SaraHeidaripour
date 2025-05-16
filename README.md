@@ -105,12 +105,12 @@ Our network first encodes each type of input independantly in a latent space, an
     * Linear(256, 60\*3): 256 -> 60\*3
   
 5. A depth encoder is used to re-generate the depth input and use an auxiliary loss:
-  * ConvTranspose2d(1280, 128, kernel_size=4, stride=3, padding=1, output_padding=2): 1x1x1280 -> 22x31x128
-  * ReLU
-  * ConvTranspose2d(128, 32, kernel_size=4, stride=3, padding=1, output_padding=2): 22x31x128 -> 67x94x32
-  * ReLU
-  * ConvTranspose2d(32, 1, kernel_size=3, stride=2, padding=1, output_padding=1): 67x94x32 -> 134x188x1
-  * Upsample(size=(200, 300), mode='bilinear', align_corners=False): 134x188x1 -> 200x300x1
+    * ConvTranspose2d(1280, 128, kernel_size=4, stride=3, padding=1, output_padding=2): 1x1x1280 -> 22x31x128
+    * ReLU
+    * ConvTranspose2d(128, 32, kernel_size=4, stride=3, padding=1, output_padding=2): 22x31x128 -> 67x94x32
+    * ReLU
+    * ConvTranspose2d(32, 1, kernel_size=3, stride=2, padding=1, output_padding=1): 67x94x32 -> 134x188x1
+    * Upsample(size=(200, 300), mode='bilinear', align_corners=False): 134x188x1 -> 200x300x1
 
 ### Loss
 
