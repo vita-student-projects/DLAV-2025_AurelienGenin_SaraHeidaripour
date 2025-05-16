@@ -127,6 +127,7 @@ Through different tests, the best training schedule was found to start with a la
 1. 2e-3 for 10 epochs
 2. 1e-3 for 30 epochs
 4. 5e-4 for 20 epochs
+5. 3e-4 for 10 epochs
 
 This method enabled to minimize over-fitting. Without it, the model would reach very low training loss, but keep a high validation loss. By sequentially lowering the training rate, the two losses remained aligned and lowered together.
 
