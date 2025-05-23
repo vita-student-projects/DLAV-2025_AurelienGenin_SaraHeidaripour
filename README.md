@@ -137,6 +137,22 @@ The training batch size was set to 64.
 
 To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phase2_Aurelien-Sara.ipynb)
 
+## Milestone 3 - Sim-to-real Generalization
+
+Our end-to-end planner for the real data uses only the ``camera`` and ``history`` inputs, and returns the future trajectory.
+
+### Network architecture
+
+Our network uses exactly the same architecture as Phase 2, without the depth encoder and decoder as we don't have these inputs available.
+
+### Training
+
+The training here is simpler: 20 epochs at 1e-3 learning rate. However, to perform well on real data, we used a mixed training set with real data but also simulated data as in the previous phases. This enabled us to reach good ADE result on real data.
+
+### Run the model
+
+To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phase3_Aurelien-Sara.ipynb)
+
 ## References
 
 [^eff_net]: M. Tan, and Q. V. Le, ["EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks"](https://arxiv.org/abs/1905.11946), arXiv, 2019
