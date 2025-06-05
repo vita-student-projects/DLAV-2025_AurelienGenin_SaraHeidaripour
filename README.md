@@ -62,7 +62,7 @@ model = DrivingPlanner()
 model.load_state_dict(torch.load("phase1_model.pth"))
 ```
 
-## Milestone 2 - Perception-Aware Planning
+## Milestone 2 - Perception-Aware Planning, Initial Architecture
 
 Our perception-aware planner uses three types of inputs from the [nuPlan](https://www.nuscenes.org/nuplan) dataset:
 * ``camera``: RGB visual input from the camera at the time of inference (shape (200,300,3))
@@ -133,9 +133,97 @@ This method enabled to minimize over-fitting. Without it, the model would reach 
 
 The training batch size was set to 64.
 
+## Milestone 2 - Perception-Aware Planning, Final Architecture (Inspired by CramNet)
+
+Our planner integrates multi-modal data from the [nuPlan](https://www.nuscenes.org/nuplan) dataset to make trajectory predictions in a perception-aware and communication-efficient manner. The inputs are:
+* ``camera``: RGB visual input from a forward-facing camera (shape: (200,300,3))
+* ``depth``: Depth image from the same camera (shape: (200,300,1))
+* ``semantic``: Semantic segmentation map (shape: (200,300,1))
+* ``history``: Past 21 poses as (x, y, yaw) (shape: (21,3))
+
+The output is a predicted sequence of 60 future positions (x,y) and headings (yaw): (60,3)
+
+### Network architecture
+
+Our model follows a modular, multi-stream architecture where each input modality is encoded separately, then refined using CramNet-inspired iterative fusion, and finally decoded into future trajectory predictions. The network includes an auxiliary depth decoder to encourage rich feature representations.
+
+1. ``Camera Encoder (RGB)``
+    * Backbone: EfficientNet-B0 pretrained on ImageNet
+    * Final layers replaced by:
+         * AdaptiveAvgPool2d
+         * Flatten
+         * Linear to 256-dim embedding
+    * Output shape: (256,)
+2. ``Depth Encoder``
+    * CNN stack:
+         * Conv2d(1, 32, 3, padding=1), ReLU
+         * MaxPool2d(2)
+         * Conv2d(32, 64, 5, stride=2, padding=2), ReLU
+         * Conv2d(64, 64, 5, stride=2, padding=2), ReLU
+         * Flatten, Linear to 256-dim
+    * Output shape: (256,)
+3. ``Semantic Encoder``
+     Same structure as the depth encoder (independent weights). Encodes semantic maps into a 256-dim vector.
+4. ``History Encoder``
+   * Flatten: 21x3 → 63
+   * Linear(63, 256), ReLU
+   * Linear(256, 128), LeakyReLU
+   * Output shape: (128,)
+5. ``CramNet-Inspired Iterative Fusion Layer``
+       Inspired by CramNet, our model uses iterative message passing across modalities instead of a single fusion step:
+       * Inputs: RGB, Depth, Semantic (each 256-dim)
+       * At each iteration:
+          * Cross-modal attention or interaction between modalities
+          * Residual updates
+          * Fusion via MLP layers
+       * Number of iterations: configurable (default: 3)
+       * Output: fused latent vector (256-dim)
+       This approach helps modalities "cram" knowledge into one another across multiple steps, enabling efficient representation learning with minimal capacity loss.
+6. ``Planner Decoder``
+    * Concatenate: [fused features (256), history (128)] → (384)
+    * Fully connected layers:
+         * Linear(384, 512), ReLU
+         * Linear(512, 256), ReLU
+         * Linear(256, 60*3)
+7. ``Auxiliary Depth Decoder``
+    A convolutional decoder reconstructs the depth map from the fused visual features:
+    * Linear(256, 25×38×64) → reshape → (64, 25, 38)
+    * ConvTranspose2d → Upsample to original size
+    * Final output: (1, 200, 300)
+
+### Loss
+
+We use a multi-task loss to guide learning:
+
+| Output | Target | Loss | Weight |
+| :----- | :----- | :--- | :----: |
+| Predicted future trajectory | True trajectory | MSE | 1.0 |
+| Reconstructed depth map | Ground truth depth | L1 | 0.05 |
+
+The auxiliary loss ensures that the RGB encoder retains depth-aware representations, enhancing perception awareness.
+
+### Training
+
+The training procedure uses progressive learning rate decay to avoid overfitting:
+1. 2e-3 for 10 epochs
+2. 1e-3 for 30 epochs
+4. 5e-4 for 15 epochs
+5. 1e-5 for 20 epochs
+6. 5e-6 for 15 epochs
+
+Batch size: 64
+Optimizer: AdamW
+
+### Summary of CramNet Inspiration
+This architecture is directly inspired by CramNet’s key ideas:
+* Iterative cross-modal fusion: Rather than concatenating all modality features once, we iteratively update each feature with others’ information.
+* Lightweight late fusion: Encourages modality-specific encoders, and promotes efficient knowledge transfer through repeated message passing.
+* Compact feature exchange: Each modality learns to compress its key knowledge into a shared latent space without overloading the decoder.
+This design achieves better multi-modal alignment, resilience to missing modalities, and strong generalization for planning tasks.
+
 ### Run the model
 
-To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phase2_Aurelien-Sara.ipynb)
+To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phase2_FinalVersion_CramNet_Inspired.ipynb)
 
 ## Milestone 3 - Sim-to-real Generalization
 
