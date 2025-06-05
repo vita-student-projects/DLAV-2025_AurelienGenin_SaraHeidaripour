@@ -237,7 +237,7 @@ Our network uses exactly the same architecture as Phase 2 (Initial Architecture)
 
 ### Training
 
-The training here is simpler: 20 epochs at 1e-3 learning rate. However, to perform well on real data, we used a mixed training set with real data but also simulated data as in the previous phases. This enabled us to reach good ADE result on real data.
+The training here is simpler: 20 epochs at 1e-3 learning rate. However, to perform well on real data, we used a mixed training set with real data but also simulated data as in the previous phases. This enabled us to reach good ADE result on real data. Note that the model performs well on the real data due to the fact that both ResNet18 and EfficinetNet-B0 which were used as backbones in the architecture are originally trained on real-world data. In conclusion, the previous architecture which benefits from these pretraiened backbones performs well also on the real-world data in this phase.
 
 ### Run the model
 
