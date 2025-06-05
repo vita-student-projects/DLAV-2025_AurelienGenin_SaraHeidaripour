@@ -231,7 +231,7 @@ Our end-to-end planner for the real data uses only the ``camera`` and ``history`
 
 ### Network architecture
 
-Our network uses exactly the same architecture as Phase 2, without the depth encoder and decoder as we don't have these inputs available.
+Our network uses exactly the same architecture as Phase 2 (Initial Architecture), without the depth encoder and decoder as we don't have these inputs available.
 
 ### Training
 
