@@ -175,14 +175,15 @@ Our model follows a modular, multi-stream architecture where each input modality
          * Linear(256, 128) + LeakyReLU
     * Output shape: (128,)
 6.  ``Feature Fusion``
-Concatenation of all encoded features:
-7. ``Trajectory Decoder``
+    Concatenation of all encoded features:
+    * Concatenate: [visual(256), history(128), depth(256), semantic(256)] → (896,)
+8. ``Trajectory Decoder``
     * Structure:
          * Linear(896, 512) + ReLU
          * Linear(512, 180) → reshape to (60, 3)
     * Output: 60 future waypoints with (x, y, yaw)
-8. ``CAuxiliary Depth Decoder (Optional)``
-When use_depth_aux=True, reconstructs depth maps from visual features:
+9. ``Auxiliary Depth Decoder (Optional)``
+    When use_depth_aux=True, reconstructs depth maps from visual features:
     * Input: EfficientNet features (1280 channels) with gradients detached
     * Structure:
          * ConvTranspose2d(1280, 128, 4, stride=3, padding=1, output_padding=2) + ReLU
