@@ -245,4 +245,4 @@ To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phas
 
 ## References
 [^eff_net]: M. Tan, and Q. V. Le, ["EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks"](https://arxiv.org/abs/1905.11946), arXiv, 2019
-[^Res_Net]: He, K., Zhang, X., Ren, S., & Sun, J. (2015). [*Deep Residual Learning for Image Recognition*](https://arxiv.org/abs/1512.03385). arXiv preprint arXiv:1512.03385.
+[^Res_Net]: He, K., Zhang, X., Ren, S., & Sun, J., [*Deep Residual Learning for Image Recognition*](https://arxiv.org/abs/1512.03385), arXiv, 2015
