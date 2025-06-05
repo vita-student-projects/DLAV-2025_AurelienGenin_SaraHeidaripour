@@ -133,93 +133,94 @@ This method enabled to minimize over-fitting. Without it, the model would reach 
 
 The training batch size was set to 64.
 
-## Milestone 2 - Perception-Aware Planning, Final Architecture (Inspired by CramNet[^Cram_Net])
+## Milestone 2 - Perception-Aware Planning, Final Architecture
 
-Our planner integrates multi-modal data from the [nuPlan](https://www.nuscenes.org/nuplan) dataset to make trajectory predictions in a perception-aware and communication-efficient manner. The inputs are:
-* ``camera``: RGB visual input from a forward-facing camera (shape: (200,300,3))
+Our planner integrates multi-modal data from the [nuPlan](https://www.nuscenes.org/nuplan) dataset to make trajectory predictions in a perception-aware manner. The inputs are:
+* ``camera``: RGB visual input from a forward-facing camera (shape: (3,200,300))
 * ``depth``: Depth image from the same camera (shape: (200,300,1))
-* ``semantic``: Semantic segmentation map (shape: (200,300,1))
+* ``semantic``: One-hot semantic segmentation map (shape: (15,200,300))
 * ``history``: Past 21 poses as (x, y, yaw) (shape: (21,3))
 
 The output is a predicted sequence of 60 future positions (x,y) and headings (yaw): (60,3)
 
 ### Network architecture
 
-Our model follows a modular, multi-stream architecture where each input modality is encoded separately, then refined using CramNet-inspired iterative fusion, and finally decoded into future trajectory predictions. The network includes an auxiliary depth decoder to encourage rich feature representations.
+Our model follows a modular, multi-stream architecture where each input modality is encoded separately using specialized encoders, then concatenated for trajectory prediction. An optional auxiliary depth decoder encourages rich visual feature representations.
 
 1. ``Camera Encoder (RGB)``
-    * Backbone: EfficientNet-B0 pretrained on ImageNet
-    * Final layers replaced by:
-         * AdaptiveAvgPool2d
-         * Flatten
-         * Linear to 256-dim embedding
+    * Backbone: EfficientNet-B0 [^eff_net] pretrained on ImageNet
+    * Processing:
+         * Removed final classification layers
+         * AdaptiveAvgPool2d(1,1) to reduce spatial dimensions
+         * Linear(1280, 256) + LeakyReLU
     * Output shape: (256,)
 2. ``Depth Encoder``
-    * CNN stack:
-         * Conv2d(1, 32, 3, padding=1), ReLU
-         * MaxPool2d(2)
-         * Conv2d(32, 64, 5, stride=2, padding=2), ReLU
-         * Conv2d(64, 64, 5, stride=2, padding=2), ReLU
-         * Flatten, Linear to 256-dim
+    * Backbone: ResNet18 [^Res_Net] pretrained on ImageNet
+    * Modifications:
+         * Replaced first conv layer: Conv2d(1, 64, 7, stride=2, padding=3) for single-channel input
+         * Removed final classification layers
+         * AdaptiveAvgPool2d(1,1) + Linear(512, 256) + LeakyReLU
     * Output shape: (256,)
-3. ``Semantic Encoder``
-     Same structure as the depth encoder (independent weights). Encodes semantic maps into a 256-dim vector.
-4. ``History Encoder``
-   * Flatten: 21x3 → 63
-   * Linear(63, 256), ReLU
-   * Linear(256, 128), LeakyReLU
-   * Output shape: (128,)
-5. ``CramNet-Inspired Iterative Fusion Layer``
-       Inspired by CramNet, our model uses iterative message passing across modalities instead of a single fusion step:
-       * Inputs: RGB, Depth, Semantic (each 256-dim)
-       * At each iteration:
-          * Cross-modal attention or interaction between modalities
-          * Residual updates
-          * Fusion via MLP layers
-       * Number of iterations: configurable (default: 3)
-       * Output: fused latent vector (256-dim)
-       This approach helps modalities "cram" knowledge into one another across multiple steps, enabling efficient representation learning with minimal capacity loss.
-6. ``Planner Decoder``
-    * Concatenate: [fused features (256), history (128)] → (384)
-    * Fully connected layers:
-         * Linear(384, 512), ReLU
-         * Linear(512, 256), ReLU
-         * Linear(256, 60*3)
-7. ``Auxiliary Depth Decoder``
-    A convolutional decoder reconstructs the depth map from the fused visual features:
-    * Linear(256, 25×38×64) → reshape → (64, 25, 38)
-    * ConvTranspose2d → Upsample to original size
-    * Final output: (1, 200, 300)
+4. ``Semantic Encoder``
+     * Backbone: ResNet18 (no pretrained weights)
+     * Modifications:
+         * Replaced first conv layer: Conv2d(15, 64, 7, stride=2, padding=3) for 15-class one-hot input
+         * Removed final classification layers
+         * AdaptiveAvgPool2d(1,1) + Linear(512, 256) + LeakyReLU
+    * Output shape: (256,)
+5. ``History Encoder``
+    * Structure:
+         * Flatten: 21×3 → 63
+         * Linear(63, 256) + ReLU
+         * Linear(256, 128) + LeakyReLU
+    * Output shape: (128,)
+6.  ``Feature Fusion``
+Concatenation of all encoded features:
+7. ``Trajectory Decoder``
+    * Structure:
+         * Linear(896, 512) + ReLU
+         * Linear(512, 180) → reshape to (60, 3)
+    * Output: 60 future waypoints with (x, y, yaw)
+8. ``CAuxiliary Depth Decoder (Optional)``
+When use_depth_aux=True, reconstructs depth maps from visual features:
+    * Input: EfficientNet features (1280 channels) with gradients detached
+    * Structure:
+         * ConvTranspose2d(1280, 128, 4, stride=3, padding=1, output_padding=2) + ReLU
+         * ConvTranspose2d(128, 32, 4, stride=3, padding=1, output_padding=2) + ReLU
+         * ConvTranspose2d(32, 1, 3, stride=2, padding=1, output_padding=1)
+         * Upsample to (200, 300) using bilinear interpolation
+    * Output: Reconstructed depth map (1, 200, 300)
 
 ### Loss
 
-We use a multi-task loss to guide learning:
+Multi-task loss with trajectory prediction and optional depth reconstruction:
 
 | Output | Target | Loss | Weight |
 | :----- | :----- | :--- | :----: |
 | Predicted future trajectory | True trajectory | MSE | 1.0 |
-| Reconstructed depth map | Ground truth depth | L1 | 0.05 |
+| Reconstructed depth map | Ground truth depth | L1 | λ_depth (0.05) |
 
-The auxiliary loss ensures that the RGB encoder retains depth-aware representations, enhancing perception awareness.
+Total Loss: L_total = MSE(trajectory) + λ_depth × L1(depth)
 
 ### Training
 
-The training procedure uses progressive learning rate decay to avoid overfitting:
-1. 2e-3 for 10 epochs
-2. 1e-3 for 30 epochs
-4. 5e-4 for 15 epochs
-5. 1e-5 for 20 epochs
-6. 5e-6 for 15 epochs
+1. ``Model Without Auxiliary Loss``
+   Optimizer: Adam (lr=1e-3), Epochs: 15, Batch size: 32
 
-Batch size: 64
-Optimizer: AdamW
+2. ``Model With Auxiliary Loss (Progressive Training)``
+   1. Phase 1: AdamW, lr=2e-3, 10 epochs, λ_depth=0.05
+   2. Phase 2: Adam, lr=1e-3, 30 epochs, λ_depth=0.05
+   3. Phase 3: AdamW, lr=5e-4, 15 epochs, λ_depth=0.05
+   4. Phase 4: AdamW, lr=1e-5, 20 epochs, λ_depth=0.05
+   5. Phase 5: Adam, lr=5e-6, 15 epochs, λ_depth=0.05
 
-### Summary of CramNet Inspiration
-This architecture is directly inspired by CramNet’s key ideas:
-* Iterative cross-modal fusion: Rather than concatenating all modality features once, we iteratively update each feature with others’ information.
-* Lightweight late fusion: Encourages modality-specific encoders, and promotes efficient knowledge transfer through repeated message passing.
-* Compact feature exchange: Each modality learns to compress its key knowledge into a shared latent space without overloading the decoder.
-This design achieves better multi-modal alignment, resilience to missing modalities, and strong generalization for planning tasks.
+Batch size: 32
+
+### Key Design Decisions
+* Multi-Modal Encoding: Each sensor modality (RGB, depth, semantic, trajectory history) uses a specialized encoder architecture tailored to its data characteristics.
+* Feature Concatenation: Simple but effective fusion strategy that preserves all modality-specific information without complex attention mechanisms.
+* Auxiliary Learning: Optional depth reconstruction task encourages the visual encoder to learn depth-aware representations, improving perception quality for planning.
+* Progressive Training: Gradual learning rate decay with different optimizers helps achieve better convergence and generalization.
 
 ### Run the model
 
@@ -243,8 +244,4 @@ To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phas
 
 ## References
 [^eff_net]: M. Tan, and Q. V. Le, ["EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks"](https://arxiv.org/abs/1905.11946), arXiv, 2019
-%[^Res_Net]: He, K., Zhang, X., Ren, S., & Sun, J. (2015). ["Deep Residual Learning for Image Recognition"], (https://arxiv.org/abs/1512.03385), arXiv preprint arXiv:1512.03385.
-[^Cram_Net]: Jyh-Jing Hwang et al., ["CramNet: Camera-Radar Fusion with Ray-Constrained Cross-Attention for Robust 3D Object Detection"](https://arxiv.org/abs/2209.14868), arXiv preprint (2022).  
-Project page: [Waymo CramNet](https://waymo.com/research/cramnet-camera-radar-fusion-with-ray-constrained-cross-attention-for-robust/)
-
-
+[^Res_Net]: He, K., Zhang, X., Ren, S., & Sun, J. (2015). ["Deep Residual Learning for Image Recognition"], (https://arxiv.org/abs/1512.03385), arXiv preprint arXiv:1512.03385.
