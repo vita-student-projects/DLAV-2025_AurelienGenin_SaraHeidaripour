@@ -244,3 +244,4 @@ To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phas
 ## References
 
 [^eff_net]: M. Tan, and Q. V. Le, ["EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks"](https://arxiv.org/abs/1905.11946), arXiv, 2019
+[^Cram_Net]: Jyh-Jing Hwang, Henrik Kretzschmar, Joshua Manela, Sean Rafferty, Nicholas Armstrong-Crews, Tiffany Chen, Dragomir Anguelov, ["CramNet: Camera-Radar Fusion with Ray-Constrained Cross-Attention for Robust 3D Object Detection"]([https://arxiv.org/abs/1905.11946](https://waymo.com/research/cramnet-camera-radar-fusion-with-ray-constrained-cross-attention-for-robust/)), arXiv, 2022
