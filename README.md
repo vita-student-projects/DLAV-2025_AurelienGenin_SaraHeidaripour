@@ -225,7 +225,7 @@ Batch size: 32
 
 ### Run the model
 
-To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phase2_FinalVersion_CramNet_Inspired.ipynb)
+To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phase2_FinalVersion_Aurelien_Sara.ipynb)
 
 ## Milestone 3 - Sim-to-real Generalization
 
