@@ -133,7 +133,7 @@ This method enabled to minimize over-fitting. Without it, the model would reach 
 
 The training batch size was set to 64.
 
-## Milestone 2 - Perception-Aware Planning, Final Architecture (Inspired by CramNet)
+## Milestone 2 - Perception-Aware Planning, Final Architecture (Inspired by CramNet[^Cram_Net])
 
 Our planner integrates multi-modal data from the [nuPlan](https://www.nuscenes.org/nuplan) dataset to make trajectory predictions in a perception-aware and communication-efficient manner. The inputs are:
 * ``camera``: RGB visual input from a forward-facing camera (shape: (200,300,3))
@@ -242,6 +242,9 @@ The training here is simpler: 20 epochs at 1e-3 learning rate. However, to perfo
 To train and run the model, simply use the attached [Jupyter notebook](DLAV_Phase3_Aurelien-Sara.ipynb)
 
 ## References
-
 [^eff_net]: M. Tan, and Q. V. Le, ["EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks"](https://arxiv.org/abs/1905.11946), arXiv, 2019
-[^Cram_Net]: Jyh-Jing Hwang et al., ["CramNet: Camera-Radar Fusion with Ray-Constrained Cross-Attention for Robust 3D Object Detection"](https://arxiv.org/abs/2209.14868), *arXiv preprint arXiv:2209.14868*, 2022.
+%[^Res_Net]: He, K., Zhang, X., Ren, S., & Sun, J. (2015). ["Deep Residual Learning for Image Recognition"], (https://arxiv.org/abs/1512.03385), arXiv preprint arXiv:1512.03385.
+[^Cram_Net]: Jyh-Jing Hwang et al., ["CramNet: Camera-Radar Fusion with Ray-Constrained Cross-Attention for Robust 3D Object Detection"](https://arxiv.org/abs/2209.14868), arXiv preprint (2022).  
+Project page: [Waymo CramNet](https://waymo.com/research/cramnet-camera-radar-fusion-with-ray-constrained-cross-attention-for-robust/)
+
+
